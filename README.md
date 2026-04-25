@@ -79,7 +79,7 @@ Repository TA/
 
 ## Data Groups
 The required datasets can be accessed in this section.
-[text](https://its.id/m/data-group)
+[https://its.id/m/data-group](https://its.id/m/data-group)
 
 ---
 

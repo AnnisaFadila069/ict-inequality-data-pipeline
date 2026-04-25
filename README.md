@@ -78,20 +78,8 @@ Repository TA/
 ---
 
 ## Data Groups
-
-| Group | File(s) | Topic | Type |
-|-------|---------|-------|------|
-| `ai` | `ai.xlsx`, `ai_rural.xlsx`, `ai_urban.xlsx` | Internet Users | % |
-| `aia` | `aia.xlsx` | Internet Users by Age Group | % |
-| `aie` | `aie.xlsx` | Internet Users by Education Level | % |
-| `ail` | `ail.xlsx`, `ail_rural.xlsx`, `ail_urban.xlsx` | Location of Internet Use | % |
-| `aip` | `aip - 1.xlsx` … `aip - 3.xlsx` | Purpose of Internet Use | % |
-| `bts` | `bts.xlsx`, `bts_rural.xlsx`, `bts_urban.xlsx` | BTS Tower Technology | count |
-| `cps` | `cps.xlsx`, `cps_rural.xlsx`, `cps_urban.xlsx` | Cellular Signal Strength | count |
-| `ifc` | `ifc.xlsx`, `ifc_rural.xlsx`, `ifc_urban.xlsx` | Internet Facility Condition | count |
-| `nov` | `nov.xlsx` | Number of Villages (normalization base) | count |
-| `pdrb` | `pdrb_2024.xlsx` | Regional GDP (normalization base) | value |
-| `total_penduduk` | `total_penduduk_2022.xlsx` | Total Population (normalization base) | count |
+The required datasets can be accessed in this section.
+[text](https://its.id/m/data-group)
 
 ---
 
@@ -100,43 +88,17 @@ Repository TA/
 ### `1_cleansing.py`
 Reads every file from **Data Raw**, applies group-specific cleaning rules, and writes to **Data Clean**.
 
-- Renames and standardizes column headers
-- Removes aggregate/total rows where applicable
-- Delegates to `Cleansing/` sub-modules per file type
-
 ### `2_standardization.py`
 Reads from **Data Clean**, reshapes each file into long format, and writes to **Data Standardized**.
-
-| Sub-module | What it does |
-|------------|-------------|
-| `_1_transform_to_long.py` | Melts wide indicator columns into `(id_province, id_indicator, value)` rows |
-| `_2_add_year_column.py` | Extracts year from filename or falls back to `YEAR` in `.env` |
-| `_3_add_area_category.py` | Adds `area_category` column: `urban`, `rural`, or `all_area` |
 
 ### `3_enrichment.py`
 Reads from **Data Standardized**, runs 6 enrichment steps, and writes to **Data Enriched**.
 
-| Step | Sub-module | What it does |
-|------|-----------|-------------|
-| 1 | `_1_combine_data.py` | Groups files by prefix (`ai`, `bts`, etc.) and concatenates |
-| 2 | `_2_convert_number_to_percentage.py` | For count groups: `value_pct = value_num / nov × 100` |
-| 3 | `_3__convert_percentage_to_number.py` | For % groups: `value_num = value_pct / 100 × population` |
-| 4 | `_4_calculate_ratio.py` | Urban/rural ratio: `urban_pct / rural_pct` per indicator |
-| 5 | `_5_calculate_gini_index.py` | Gini across provinces (per nov & per PDRB) + Gini within province |
-| 6 | *(inline)* | Relabels `id_province=0` area to `indonesia` / `indonesia_urban` / `indonesia_rural` |
-
 ### `4_load.py`
 Reads from **Data Enriched** and **Data Dimension**, restructures into star schema, and writes to **Data Load**.
 
-Produces 5 dimension tables and 7 fact tables (see [Output Schema](#output-schema)).
-
 ### `5_load_to_onedrive.py`
 Upserts all files from **Data Load** to the OneDrive sync folder defined in `.env`.
-
-**Upsert behavior:**
-- File not on OneDrive → copy as new (`INSERT`)
-- File exists on OneDrive → merge on primary key, new data wins (`UPDATE`)
-- Duplicate rows on same primary key → deduplicated automatically
 
 ---
 
@@ -222,8 +184,10 @@ BASE_FOLDER_ONE_DRIVE="E:\OneDrive\Tugas Akhir\Data Load"
 ### Prerequisites
 
 ```bash
-pip install pandas openpyxl
+pip install -r requirements.txt
+cp .env.example .env
 ```
+Please Setup Environment Variables.
 
 ### Run the Full Pipeline (in order)
 

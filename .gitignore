@@ -10,7 +10,6 @@ __pycache__/
 .env
 
 # Data folders (large binary files, not tracked in git)
-Data Raw/
 Data Clean/
 Data Standardized/
 Data Enriched/

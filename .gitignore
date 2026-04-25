@@ -1,0 +1,32 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+
+# Environment
+.env
+
+# Data folders (large binary files, not tracked in git)
+Data Raw/
+Data Clean/
+Data Standardized/
+Data Enriched/
+Data Load/
+
+# Dimension data is manually maintained — track it
+# Data Dimension/ → intentionally NOT ignored
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# Jupyter
+.ipynb_checkpoints/

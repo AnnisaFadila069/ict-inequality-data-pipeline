@@ -14,6 +14,7 @@ Data Clean/
 Data Standardized/
 Data Enriched/
 Data Load/
+logs/
 
 # Dimension data is manually maintained — track it
 # Data Dimension/ → intentionally NOT ignored

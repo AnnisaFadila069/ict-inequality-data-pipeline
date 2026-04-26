@@ -56,8 +56,9 @@ Repository TA/
 ├── Run/
 │   ├── run_all.py             # Run all 5 pipeline steps in sequence
 │   ├── run_all.bat            # Batch wrapper for Task Scheduler
-│   ├── send_warning.py        # Send a reminder email 2 hours before the pipeline
-│   └── send_warning.bat       # Batch wrapper for Task Scheduler
+│   ├── send_warning.py        # Send a reminder email before the pipeline
+│   ├── send_warning.bat       # Batch wrapper for Task Scheduler
+│   └── setup_schedule.py      # Apply schedule settings from .env to Task Scheduler
 │
 ├── Utils/
 │   └── email_utils.py         # Shared SMTP email helper
@@ -198,19 +199,19 @@ python 5_load_to_onedrive.py
 ```
 
 ### 7. Automated Scheduling (Windows Task Scheduler)
-The pipeline is pre-configured to run automatically via Windows Task Scheduler:
 
-| Time | Task | Action |
-|------|------|--------|
-| 08:00 daily | `TA_SendWarningEmail` | Sends a reminder email to `EMAIL_FROM_ADDRESS` |
-| 10:00 daily | `TA_RunAllPipelines` | Runs all pipelines automatically |
-
-To register the scheduled tasks, run once in an elevated terminal:
+The schedule is controlled by two variables in `.env`
+To apply the schedule (run once after setup, or again after changing the values above):
 ```bash
-schtasks /create /tn "TA_SendWarningEmail" /tr "\"<path>\Run\send_warning.bat\"" /sc DAILY /st 08:00 /f
-schtasks /create /tn "TA_RunAllPipelines"  /tr "\"<path>\Run\run_all.bat\""      /sc DAILY /st 10:00 /f
+python Run\setup_schedule.py
 ```
-Replace `<path>` with the full path to the repository folder.
+
+This registers two Windows Task Scheduler tasks automatically:
+
+| Task | Time | Action |
+|------|------|--------|
+| `TA_SendWarningEmail` | `PIPELINE_RUN_TIME` − `WARNING_HOURS_BEFORE` hours | Sends reminder email to `EMAIL_FROM_ADDRESS` |
+| `TA_RunAllPipelines` | `PIPELINE_RUN_TIME` | Runs all pipelines automatically |
 
 #### Email Notifications
 

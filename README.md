@@ -72,11 +72,15 @@ Repository TA/
 │       ├── _4_calculate_ratio.py          — urban_pct / rural_pct per indicator
 │       └── _5_calculate_gini_index.py     — Gini across provinces & within province
 │
-├── run_all.py                 # Run all 5 pipeline steps in sequence
-├── run_all.bat                # Batch wrapper for Task Scheduler
-├── send_warning.py            # Send a reminder email 2 hours before the pipeline
-├── send_warning.bat           # Batch wrapper for Task Scheduler
-├── email_utils.py             # Shared SMTP email helper
+├── Run/
+│   ├── run_all.py             # Run all 5 pipeline steps in sequence
+│   ├── run_all.bat            # Batch wrapper for Task Scheduler
+│   ├── send_warning.py        # Send a reminder email 2 hours before the pipeline
+│   └── send_warning.bat       # Batch wrapper for Task Scheduler
+│
+├── Utils/
+│   └── email_utils.py         # Shared SMTP email helper
+│
 ├── .env                       # Path and email configuration (see Configuration section)
 └── README.md
 ```
@@ -106,11 +110,14 @@ Reads from **Data Enriched** and **Data Dimension**, restructures into star sche
 ### `5_load_to_onedrive.py`
 Upserts all files from **Data Load** to the OneDrive sync folder defined in `.env`.
 
-### `run_all.py`
+### `Run/run_all.py`
 Runs all 5 pipeline steps in sequence. If any step fails, the process stops immediately and a failure email is sent. On success, a completion email is sent to both `EMAIL_FROM_ADDRESS` and `EMAIL_TO_ADDRESS`. Each run saves a timestamped log to the `logs/` folder.
 
-### `send_warning.py`
+### `Run/send_warning.py`
 Sends a reminder email to `EMAIL_FROM_ADDRESS` as an advance notice before the pipeline runs.
+
+### `Utils/email_utils.py`
+Shared SMTP helper used by `run_all.py` and `send_warning.py` to send emails via Gmail.
 
 ---
 
@@ -239,7 +246,7 @@ Then open `.env` and update all values.
 
 ### 5. Run All Pipelines at Once
 ```bash
-python run_all.py
+python Run\run_all.py
 ```
 This runs all 5 steps in sequence and sends email notifications on success or failure.
 Logs are saved to the `logs/` folder.
@@ -265,8 +272,8 @@ The pipeline is pre-configured to run automatically via Windows Task Scheduler:
 
 To register the scheduled tasks, run once in an elevated terminal:
 ```bash
-schtasks /create /tn "TA_SendWarningEmail" /tr "\"<path>\send_warning.bat\"" /sc DAILY /st 08:00 /f
-schtasks /create /tn "TA_RunAllPipelines"  /tr "\"<path>\run_all.bat\""      /sc DAILY /st 10:00 /f
+schtasks /create /tn "TA_SendWarningEmail" /tr "\"<path>\Run\send_warning.bat\"" /sc DAILY /st 08:00 /f
+schtasks /create /tn "TA_RunAllPipelines"  /tr "\"<path>\Run\run_all.bat\""      /sc DAILY /st 10:00 /f
 ```
 Replace `<path>` with the full path to the repository folder.
 

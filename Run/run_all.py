@@ -3,11 +3,14 @@ import sys
 import os
 import datetime
 
-from email_utils import load_env_auto, send_email
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
 
-TASKS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Tasks")
+from Utils.email_utils import load_env_auto, send_email
+
+TASKS_DIR = os.path.join(ROOT, "Tasks")
 PYTHON    = sys.executable
-LOG_DIR   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+LOG_DIR   = os.path.join(ROOT, "logs")
 
 PIPELINES = [
     ("1_cleansing.py",        "1. Cleansing"),

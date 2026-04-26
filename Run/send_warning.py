@@ -1,5 +1,10 @@
 import sys
-from email_utils import load_env_auto, send_email
+import os
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
+from Utils.email_utils import load_env_auto, send_email
 
 
 def main():

@@ -7,30 +7,11 @@ producing a clean star-schema dataset ready for dashboard consumption.
 
 ## Table of Contents
 
-- [Pipeline Overview](#pipeline-overview)
 - [Folder Structure](#folder-structure)
 - [Data Groups](#data-groups)
-- [Task Files](#task-files)
 - [Output Schema](#output-schema)
 - [Configuration](#configuration)
 - [How to Run](#how-to-run)
-
----
-
-## Pipeline Overview
-
-```
-Data Raw  →  Data Clean  →  Data Standardized  →  Data Enriched  →  Data Load  →  OneDrive
-             (1_cleansing)   (2_standardization)    (3_enrichment)   (4_load)    (5_load_to_onedrive)
-```
-
-| Step | Script | Description |
-|------|--------|-------------|
-| 1 | `1_cleansing.py` | Fix column names, remove noise, normalize raw Excel files |
-| 2 | `2_standardization.py` | Reshape wide → long format, add `year` and `area_category` columns |
-| 3 | `3_enrichment.py` | Compute percentages, ratios, and Gini index |
-| 4 | `4_load.py` | Build dimension and fact tables into star schema |
-| 5 | `5_load_to_onedrive.py` | Upsert final tables to OneDrive sync folder |
 
 ---
 
@@ -93,35 +74,23 @@ The required datasets can be accessed in this section.
 
 ---
 
-## Task Files
+## Output Schema
+### Pipeline Overview
 
-### `1_cleansing.py`
-Reads every file from **Data Raw**, applies group-specific cleaning rules, and writes to **Data Clean**.
+```
+Data Raw  →  Data Clean  →  Data Standardized  →  Data Enriched  →  Data Load  →  OneDrive
+             (1_cleansing)   (2_standardization)    (3_enrichment)   (4_load)    (5_load_to_onedrive)
+```
 
-### `2_standardization.py`
-Reads from **Data Clean**, reshapes each file into long format, and writes to **Data Standardized**.
-
-### `3_enrichment.py`
-Reads from **Data Standardized**, runs 6 enrichment steps, and writes to **Data Enriched**.
-
-### `4_load.py`
-Reads from **Data Enriched** and **Data Dimension**, restructures into star schema, and writes to **Data Load**.
-
-### `5_load_to_onedrive.py`
-Upserts all files from **Data Load** to the OneDrive sync folder defined in `.env`.
-
-### `Run/run_all.py`
-Runs all 5 pipeline steps in sequence. If any step fails, the process stops immediately and a failure email is sent. On success, a completion email is sent to both `EMAIL_FROM_ADDRESS` and `EMAIL_TO_ADDRESS`. Each run saves a timestamped log to the `logs/` folder.
-
-### `Run/send_warning.py`
-Sends a reminder email to `EMAIL_FROM_ADDRESS` as an advance notice before the pipeline runs.
-
-### `Utils/email_utils.py`
-Shared SMTP helper used by `run_all.py` and `send_warning.py` to send emails via Gmail.
+| Step | Script | Description |
+|------|--------|-------------|
+| 1 | `1_cleansing.py` | Fix column names, remove noise, normalize raw Excel files |
+| 2 | `2_standardization.py` | Reshape wide → long format, add `year` and `area_category` columns |
+| 3 | `3_enrichment.py` | Compute percentages, ratios, and Gini index |
+| 4 | `4_load.py` | Build dimension and fact tables into star schema |
+| 5 | `5_load_to_onedrive.py` | Upsert final tables to OneDrive sync folder |
 
 ---
-
-## Output Schema
 
 ### Dimension Tables
 
@@ -173,40 +142,6 @@ id_province ──┐  id_indicator─┤──────────┤      
           │  year, gini      │   │  (reference tables)       │
           └──────────────────┘   └──────────────────────────┘
 ```
-
----
-
-## Configuration
-
-All paths, year, and email settings are defined in `.env` at the project root:
-
-```env
-YEAR=2024
-
-BASE_FOLDER_RAW_DATA="E:\TA\Repository TA\Data Raw"
-BASE_FOLDER_CLEAN_DATA="E:\TA\Repository TA\Data Clean"
-BASE_FOLDER_STANDARDIZED_DATA="E:\TA\Repository TA\Data Standardized"
-BASE_FOLDER_ENRICHED_DATA="E:\TA\Repository TA\Data Enriched"
-BASE_FOLDER_LOAD_DATA="E:\TA\Repository TA\Data Load"
-BASE_FOLDER_DIMENSION_DATA="E:\TA\Repository TA\Data Dimension"
-BASE_FOLDER_ONE_DRIVE="E:\OneDrive\Tugas Akhir\Data Load"
-
-EMAIL_FROM_ADDRESS="your_email@gmail.com"
-EMAIL_TO_ADDRESS="recipient@gmail.com"
-EMAIL_SMTP_HOST="smtp.gmail.com"
-EMAIL_SMTP_PORT=587
-EMAIL_SMTP_PASSWORD="your_app_password_here"
-```
-
-> **To add a new year:** update `YEAR=` and place new raw files in `Data Raw/`.  
-> The pipeline will pick up the year automatically from the filename where available,  
-> or fall back to the `YEAR` value for files without a year in their name.
-
-> **Gmail App Password:** Go to [myaccount.google.com/security](https://myaccount.google.com/security),
-> enable 2-Step Verification, then generate an App Password under **App passwords**.
-> Use the 16-character password (without spaces) as `EMAIL_SMTP_PASSWORD`.
-
----
 
 ## How to Run
 

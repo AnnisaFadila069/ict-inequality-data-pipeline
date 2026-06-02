@@ -51,7 +51,7 @@ Repository TA/
 │       ├── _2_convert_number_to_percentage.py  — value_num / nov × 100 → value_pct
 │       ├── _3__convert_percentage_to_number.py — value_pct / 100 × population → value_num
 │       ├── _4_calculate_ratio.py          — urban_pct / rural_pct per indicator
-│       └── _5_calculate_gini_index.py     — Gini across provinces & within province
+│       └── _5_calculate_gini_index.py     — Gini impurity (registered vs unregistered) per province
 │
 ├── Run/
 │   ├── run_all.py             # Run all 5 pipeline steps in sequence
@@ -87,7 +87,7 @@ Data Raw  →  Data Clean  →  Data Standardized  →  Data Enriched  →  Data
 |------|--------|-------------|
 | 1 | `1_cleansing.py` | Fix column names, remove noise, normalize raw Excel files |
 | 2 | `2_standardization.py` | Reshape wide → long format, add `year` and `area_category` columns |
-| 3 | `3_enrichment.py` | Compute percentages, ratios, and Gini index |
+| 3 | `3_enrichment.py` | Compute percentages, ratios, and Gini impurity (registered vs unregistered) |
 | 4 | `4_load.py` | Build dimension and fact tables into star schema |
 | 5 | `5_load_to_onedrive.py` | Upsert final tables to OneDrive sync folder |
 
@@ -101,7 +101,7 @@ Data Raw  →  Data Clean  →  Data Standardized  →  Data Enriched  →  Data
 | `dim_indicator` | `id_indicator` | Indicator labels, groups, and descriptions |
 | `dim_area` | `area_category` | Area labels: `urban`, `rural`, `all_area`, `indonesia`, etc. |
 | `dim_year` | `year` | Available years (2021–2025) |
-| `dim_normalization` | `id_method` | Normalization methods: raw, per village, per GDP |
+| `dim_normalization` | `normalization_type` | Normalization methods (`village`, `pdrb`) and descriptions |
 
 ### Fact Tables
 
@@ -109,8 +109,8 @@ Data Raw  →  Data Clean  →  Data Standardized  →  Data Enriched  →  Data
 |-------|-------------|-------------|
 | `fact_ict` | `id_province, id_indicator, year, area_category` | All ICT indicator values (`value_pct`, `value_num`) |
 | `fact_ratio` | `id_province, id_indicator, year` | Urban-to-rural ratio per indicator |
-| `fact_gini` | `id_indicator, year, id_method` | Gini index across provinces, two normalizations |
-| `fact_gini_province` | `id_province, year` | Gini index within each province (all_area) |
+| `fact_normalization_province` | `id_province, year, id_indicator, normalization_type` | Normalized ratio per province × year × indicator × normalization type |
+| `fact_gini_indonesia` | `year, id_indicator, normalization_type` | Gini coefficient for Indonesia per year × indicator × normalization type |
 | `fact_nov` | `id_province, area_category, year` | Number of villages per province and area |
 | `fact_population` | `id_province, area_category, year` | Total population per province and area |
 | `fact_pdrb` | `id_province, year` | Regional GDP per province |
@@ -118,30 +118,33 @@ Data Raw  →  Data Clean  →  Data Standardized  →  Data Enriched  →  Data
 ### Star Schema Diagram
 
 ```
-                        dim_normalization
-                              │ id_method
-                              │
-dim_province    dim_indicator │         dim_area      dim_year
-id_province ──┐  id_indicator─┤──────────┤             │
-              │               │          │ area_category│ year
-              ▼               ▼          ▼              ▼
-          ┌─────────────────────────────────────────────────┐
-          │                  fact_ict                       │
-          │  id_province, id_indicator, year, area_category  │
-          │  value_pct, value_num                            │
-          └──────────────────────────────────────────────────┘
+dim_province    dim_indicator            dim_area      dim_year
+id_province ──┐  id_indicator ───────────┤             │
+              │                          │ area_category│ year
+              ▼                          ▼              ▼
+          ┌────────────────────────────────────────────────────┐
+          │                    fact_ict                        │
+          │  id_province, id_indicator, year, area_category    │
+          │  value_pct, value_num                              │
+          └────────────────────────────────────────────────────┘
 
-          ┌──────────────────┐   ┌──────────────────────────┐
-          │   fact_ratio     │   │       fact_gini           │
-          │  id_province     │   │  id_indicator, year       │
-          │  id_indicator    │   │  id_method, gini          │
-          │  year, ratio     │   └──────────────────────────┘
-          └──────────────────┘
-          ┌──────────────────┐   ┌──────────────────────────┐
-          │ fact_gini_prov   │   │  fact_nov / fact_pdrb /   │
-          │  id_province     │   │  fact_population          │
-          │  year, gini      │   │  (reference tables)       │
-          └──────────────────┘   └──────────────────────────┘
+          ┌──────────────────────┐   ┌──────────────────────────────────────┐
+          │      fact_ratio      │   │    fact_normalization_province        │
+          │  id_province         │   │  id_province, year                    │
+          │  id_indicator        │   │  id_indicator, normalization_type     │
+          │  year, ratio         │   │  ratio                                │
+          └──────────────────────┘   └──────────────────────────────────────┘
+
+          ┌──────────────────────────────────────┐
+          │         fact_gini_indonesia           │
+          │  year, id_indicator                   │
+          │  normalization_type, gini             │
+          └──────────────────────────────────────┘
+
+          ┌────────────────────────────────────────────────────┐
+          │        fact_nov / fact_population / fact_pdrb      │
+          │              (reference tables)                    │
+          └────────────────────────────────────────────────────┘
 ```
 
 ## How to Run
@@ -217,6 +220,6 @@ This registers two Windows Task Scheduler tasks automatically:
 
 | Event | Recipients |
 |-------|-----------|
-| Reminder (08:00) | `EMAIL_FROM_ADDRESS` |
+| Reminder | `EMAIL_FROM_ADDRESS` |
 | All pipelines succeeded | `EMAIL_FROM_ADDRESS` and `EMAIL_TO_ADDRESS` |
 | Any pipeline failed | `EMAIL_FROM_ADDRESS` |

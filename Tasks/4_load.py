@@ -69,11 +69,11 @@ def load_dimensions(dim_folder, out_folder):
 
 ICT_GROUPS = {"ai", "aia", "aie", "ail", "aip", "bts", "cps", "ifc"}
 
-FACT_ICT_COLS     = ["id_province", "id_indicator", "year", "area_category", "value_pct", "value_num"]
-FACT_RATIO_COLS   = ["id_province", "id_indicator", "year", "ratio"]
-FACT_GINI_COLS    = ["id_indicator", "year", "id_method", "gini"]
-FACT_GINI_P_COLS  = ["id_province", "year", "gini"]
-FACT_NOV_COLS     = ["id_province", "area_category", "year", "number_of_villages"]
+FACT_ICT_COLS          = ["id_province", "id_indicator", "year", "area_category", "value_pct", "value_num"]
+FACT_RATIO_COLS        = ["id_province", "id_indicator", "year", "ratio"]
+FACT_NORMALIZATION_PROVINCE_COLS = ["id_province", "year", "id_indicator", "normalization_type", "ratio"]
+FACT_GINI_INDONESIA_COLS         = ["year", "id_indicator", "normalization_type", "gini"]
+FACT_NOV_COLS          = ["id_province", "area_category", "year", "number_of_villages"]
 FACT_POP_COLS     = ["id_province", "area_category", "year", "total_population"]
 FACT_PDRB_COLS    = ["id_province", "year", "pdrb"]
 
@@ -113,47 +113,25 @@ def build_fact_ratio(enriched_folder):
     )
 
 
-def build_fact_gini(enriched_folder):
-    """
-    Combine gini_per_nov (id_method=2) and gini_per_pdrb (id_method=3)
-    into one long-format fact table.
 
-    id_method matches dim_normalization:
-      2 = Per Village (nov)
-      3 = Per GDP (PDRB)
-    """
-    nov_df  = read_excel(os.path.join(enriched_folder, "gini_per_nov.xlsx")).assign(id_method=2)
-    pdrb_df = read_excel(os.path.join(enriched_folder, "gini_per_pdrb.xlsx")).assign(id_method=3)
-
+def build_fact_normalization_province(enriched_folder):
+    """Normalized ratio per province × year × indicator × normalization_type."""
+    path = os.path.join(enriched_folder, "normalization_province.xlsx")
+    df = read_excel(path)
     return (
-        pd.concat([nov_df, pdrb_df], ignore_index=True)
-        .reindex(columns=FACT_GINI_COLS)
-        .sort_values(["id_indicator", "year", "id_method"])
+        df.reindex(columns=FACT_NORMALIZATION_PROVINCE_COLS)
+        .sort_values(["id_province", "year", "id_indicator", "normalization_type"])
         .reset_index(drop=True)
     )
 
 
-def build_fact_gini_province(enriched_folder):
-    """
-    Convert gini_per_province pivot (id_province × year columns)
-    into long format: id_province, year, gini.
-    """
-    path = os.path.join(enriched_folder, "gini_per_province.xlsx")
+def build_fact_gini_indonesia(enriched_folder):
+    """Gini Coefficient for Indonesia per year × indicator × normalization_type."""
+    path = os.path.join(enriched_folder, "gini_indonesia.xlsx")
     df = read_excel(path)
-
-    year_cols = [c for c in df.columns if c != "id_province"]
-    fact = df.melt(
-        id_vars="id_province",
-        value_vars=year_cols,
-        var_name="year",
-        value_name="gini",
-    )
-    fact["year"] = pd.to_numeric(fact["year"], errors="coerce").astype("Int64")
-    fact = fact.dropna(subset=["gini"])
-
     return (
-        fact.reindex(columns=FACT_GINI_P_COLS)
-        .sort_values(["id_province", "year"])
+        df.reindex(columns=FACT_GINI_INDONESIA_COLS)
+        .sort_values(["year", "id_indicator", "normalization_type"])
         .reset_index(drop=True)
     )
 
@@ -204,13 +182,13 @@ def load_facts(enriched_folder, out_folder):
     print_header("LOAD FACTS")
 
     tasks = [
-        ("fact_ict.xlsx",           build_fact_ict),
-        ("fact_ratio.xlsx",         build_fact_ratio),
-        ("fact_gini.xlsx",          build_fact_gini),
-        ("fact_gini_province.xlsx", build_fact_gini_province),
-        ("fact_nov.xlsx",           build_fact_nov),
-        ("fact_population.xlsx",    build_fact_population),
-        ("fact_pdrb.xlsx",          build_fact_pdrb),
+        ("fact_ict.xlsx",            build_fact_ict),
+        ("fact_ratio.xlsx",          build_fact_ratio),
+        ("fact_normalization_province.xlsx", build_fact_normalization_province),
+        ("fact_gini_indonesia.xlsx",        build_fact_gini_indonesia),
+        ("fact_nov.xlsx",            build_fact_nov),
+        ("fact_population.xlsx",     build_fact_population),
+        ("fact_pdrb.xlsx",           build_fact_pdrb),
     ]
 
     for filename, builder in tasks:

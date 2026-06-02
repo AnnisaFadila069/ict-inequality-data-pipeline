@@ -37,14 +37,14 @@ PRIMARY_KEYS = {
     "dim_indicator.xlsx":     ["id_indicator"],
     "dim_area.xlsx":          ["area_category"],
     "dim_year.xlsx":          ["year"],
-    "dim_normalization.xlsx": ["id_method"],
+    "dim_normalization.xlsx": ["normalization_type"],
 
     # Facts
-    "fact_ict.xlsx":           ["id_province", "id_indicator", "year", "area_category"],
-    "fact_ratio.xlsx":         ["id_province", "id_indicator", "year"],
-    "fact_gini.xlsx":          ["id_indicator", "year", "id_method"],
-    "fact_gini_province.xlsx": ["id_province", "year"],
-    "fact_nov.xlsx":           ["id_province", "area_category", "year"],
+    "fact_ict.xlsx":            ["id_province", "id_indicator", "year", "area_category"],
+    "fact_ratio.xlsx":          ["id_province", "id_indicator", "year"],
+    "fact_normalization_province.xlsx": ["id_province", "year", "id_indicator", "normalization_type"],
+    "fact_gini_indonesia.xlsx":        ["year", "id_indicator", "normalization_type"],
+    "fact_nov.xlsx":            ["id_province", "area_category", "year"],
     "fact_population.xlsx":    ["id_province", "area_category", "year"],
     "fact_pdrb.xlsx":          ["id_province", "year"],
 }

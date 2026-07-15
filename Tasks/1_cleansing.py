@@ -41,6 +41,7 @@ def main():
 
     raw_folder = env.get("BASE_FOLDER_RAW_DATA")
     clean_folder = env.get("BASE_FOLDER_CLEAN_DATA")
+    dimension_folder = env.get("BASE_FOLDER_DIMENSION_DATA")
 
     if not raw_folder or not clean_folder:
         raise ValueError(
@@ -68,7 +69,7 @@ def main():
 
         try:
             if prefix == "pdrb":
-                df = pdrb.clean(input_path)
+                df = pdrb.clean(input_path, dimension_folder)
                 _save(df, output_path)
 
             elif prefix == "total":

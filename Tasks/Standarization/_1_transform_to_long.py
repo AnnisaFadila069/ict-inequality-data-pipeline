@@ -1,6 +1,5 @@
 import pandas as pd
 
-
 # List file name with no indicator column (e.g. variable name is in the column header, not in the value)
 def get_indicator_from_filename(filename):
     name = filename.replace(".xlsx", "").lower()

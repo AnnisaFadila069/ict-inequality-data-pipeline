@@ -9,32 +9,25 @@ def clean(file_path):
     df = pd.read_excel(file_path, header=None, dtype=str)
 
     # =========================
-    # FIX 1: KEEP TOTAL ROW (IMPORTANT)
+    # FILTER VALID ROWS & SELECT COLUMNS
     # =========================
+    # Keep only province rows ("NN.") and the national total ("TOTAL")
     df = df[df[0].str.match(r"^\d+\.|^TOTAL$", na=False)].reset_index(drop=True)
 
-    # Assign standard column names
-    col_map = {
-        df.columns[0]: "province_raw",
-        df.columns[1]: "urban_m",
-        df.columns[2]: "urban_f",
-        df.columns[3]: "urban",
-        df.columns[4]: "rural_m",
-        df.columns[5]: "rural_f",
-        df.columns[6]: "rural",
-        df.columns[7]: "all_area_m",
-        df.columns[8]: "all_area_f",
-    }
-    df = df.rename(columns=col_map)
+    # Select only the needed columns: province_raw(0), urban(3), rural(6), all_area(9)
+    df = df[[0, 3, 6, 9]]
+    df.columns = ["province_raw", "urban", "rural", "all_area"]
 
     # =========================
-    # FIX 2: TOTAL -> INDONESIA
+    # REPLACE "TOTAL" → "Indonesia"
     # =========================
     df["province_raw"] = df["province_raw"].replace(
         r"(?i)^total$", "Indonesia", regex=True
     )
 
-    # Extract numeric province ID
+    # =========================
+    # EXTRACT id_province
+    # =========================
     df["id_province"] = df["province_raw"].astype(str).str.extract(r"^(\d+)")
 
     # Set Indonesia = 0
@@ -48,7 +41,7 @@ def clean(file_path):
     # =========================
     # CONVERT NUMERIC COLUMNS
     # =========================
-    for col in ["urban", "rural", "all_area_m", "all_area_f"]:
+    for col in ["urban", "rural", "all_area"]:
         df[col] = (
             df[col]
             .astype(str)
@@ -56,9 +49,6 @@ def clean(file_path):
             .str.replace(".", "", regex=False)
             .pipe(pd.to_numeric, errors="coerce")
         )
-
-    # Derive total
-    df["all_area"] = df["all_area_m"] + df["all_area_f"]
 
     # =========================
     # FINAL OUTPUT

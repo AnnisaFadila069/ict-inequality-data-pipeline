@@ -66,15 +66,45 @@ def transform_area_classification(df):
     return df
 
 
+def relabel_indonesia(df):
+    """
+    For rows where id_province == 0 (national aggregate):
+      - area_category 'all_area' → 'indonesia'
+      - area_category 'urban'    → 'indonesia_urban'
+      - area_category 'rural'    → 'indonesia_rural'
+
+    This allows dashboard filters to distinguish:
+      urban / rural / all_area (province) vs indonesia (national)
+    """
+    if "id_province" not in df.columns or "area_category" not in df.columns:
+        return df
+
+    AREA_REMAP = {
+        "all_area": "indonesia",
+        "urban":    "indonesia_urban",
+        "rural":    "indonesia_rural",
+    }
+
+    mask = df["id_province"] == 0
+    df.loc[mask, "area_category"] = df.loc[mask, "area_category"].map(
+        lambda v: AREA_REMAP.get(v, v)
+    )
+
+    return df
+
+
 def add_area_category(df, filename):
 
     filename = filename.lower()
 
     # ✅ SPECIAL CASE: IF + TOTAL*
     if is_area_classification_file(filename):
-        return transform_area_classification(df)
+        df = transform_area_classification(df)
+    else:
+        # ✅ DEFAULT CASE
+        df["area_category"] = get_area_category(filename)
 
-    # ✅ DEFAULT CASE
-    df["area_category"] = get_area_category(filename)
+    # ✅ RELABEL INDONESIA ROWS (id_province == 0)
+    df = relabel_indonesia(df)
 
     return df

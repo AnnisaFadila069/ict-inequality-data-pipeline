@@ -127,15 +127,6 @@ def run_enrichment():
     print("STEP 5 COMPLETED\n")
 
     # =========================
-    # STEP 6: RELABEL INDONESIA ROWS
-    # =========================
-    print("STEP 6: RELABEL INDONESIA ROWS")
-
-    combined = _relabel_indonesia(combined)
-
-    print("STEP 6 COMPLETED\n")
-
-    # =========================
     # SAVE FILES
     # =========================
     print("SAVE FILES")
@@ -154,41 +145,6 @@ def run_enrichment():
             print(f"  {filename} -> copied (excluded from combine)")
 
     print("\nPIPELINE COMPLETED")
-
-
-def _relabel_indonesia(combined_data):
-    """
-    For rows where id_province == 0 (national aggregate):
-      - area_category 'all_area' → 'indonesia'
-      - area_category 'urban'    → 'indonesia_urban'
-      - area_category 'rural'    → 'indonesia_rural'
-
-    This allows dashboard filters to distinguish:
-      urban / rural / all_area (province) / indonesia
-    """
-    AREA_REMAP = {
-        "all_area": "indonesia",
-        "urban":    "indonesia_urban",
-        "rural":    "indonesia_rural",
-    }
-
-    result = {}
-    for key, df in combined_data.items():
-        if "id_province" not in df.columns or "area_category" not in df.columns:
-            result[key] = df
-            continue
-
-        df = df.copy()
-        mask = df["id_province"] == 0
-        df.loc[mask, "area_category"] = df.loc[mask, "area_category"].map(
-            lambda v: AREA_REMAP.get(v, v)
-        )
-        result[key] = df
-        remapped = mask.sum()
-        if remapped:
-            print(f"  [{key}] {remapped} Indonesia rows relabeled")
-
-    return result
 
 
 if __name__ == "__main__":

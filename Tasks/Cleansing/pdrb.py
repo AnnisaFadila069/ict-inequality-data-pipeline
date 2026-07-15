@@ -4,48 +4,31 @@ import difflib
 import pandas as pd
 
 
-def _build_province_map_from_ai(raw_folder):
+def _build_province_map(dimension_folder):
     """
-    Build {province_name_lower: id_province} from raw ai.xlsx.
-    Province rows follow the format 'NN. Name' (e.g. '11. Aceh').
+    Build {province_name_lower: id_province} from dim_province.xlsx.
+    Also adds expanded forms (e.g. "kep. riau" → "kepulauan riau") for
+    fuzzy matching flexibility.
     The 'Indonesia' aggregate row is mapped to id = 0.
     """
-    ai_path = os.path.join(raw_folder, "ai.xlsx")
-    if not os.path.exists(ai_path):
-        raise FileNotFoundError(f"ai.xlsx not found in {raw_folder}")
+    dim_path = os.path.join(dimension_folder, "dim_province.xlsx")
+    if not os.path.exists(dim_path):
+        raise FileNotFoundError(f"dim_province.xlsx not found in {dimension_folder}")
 
-    df = pd.read_excel(ai_path, header=None, dtype=str)
-
-    # Row 1 is the actual header; rows 0-2 are metadata
-    df.columns = df.iloc[1]
-    df = df.drop([0, 1, 2]).reset_index(drop=True)
-
-    # Find the province column
-    prov_col = next((c for c in df.columns if "Province" in str(c)), None)
-    if prov_col is None:
-        raise ValueError("Province column not found in ai.xlsx")
+    df = pd.read_excel(dim_path)
 
     province_map = {}
-    for val in df[prov_col].dropna():
-        val = str(val).strip()
-        # "11. Aceh" → id=11, name="aceh"
-        m = re.match(r"^(\d+)\.\s*(.+)$", val)
-        if m:
-            prov_id = int(m.group(1))
-            name = m.group(2).strip().lower()
-            province_map[name] = prov_id
-            # Also add expanded form: "kep. riau" → "kepulauan riau"
-            expanded = re.sub(r"\bkep\.\s*", "kepulauan ", name).strip()
-            if expanded != name:
-                province_map[expanded] = prov_id
-        elif val.lower() == "indonesia":
-            province_map["indonesia"] = 0
+    for _, row in df.iterrows():
+        prov_id = int(row["id_province"])
+        name = str(row["province"]).strip().lower()
+        province_map[name] = prov_id
+        # Also add expanded form: "kep. riau" → "kepulauan riau"
+        expanded = re.sub(r"\bkep\.\s*", "kepulauan ", name).strip()
+        if expanded != name:
+            province_map[expanded] = prov_id
 
-    # Aliases for known ai.xlsx data errors:
-    # ai.xlsx erroneously labels id=53 as "Nusa Tenggara Barat" (should be "Timur").
-    # Force-correct both entries so they override whatever ai.xlsx produced.
-    province_map["nusa tenggara barat"] = 52
-    province_map["nusa tenggara timur"] = 53
+    # Indonesia aggregate
+    province_map["indonesia"] = 0
 
     return province_map
 
@@ -74,13 +57,21 @@ def _fuzzy_id(province_name, province_map, threshold=0.8):
     return None
 
 
-def clean(file_path):
+def clean(file_path, dimension_folder=None):
     """
     Clean the PDRB (Regional GDP per capita) file.
 
     id_province is resolved by fuzzy-matching (≥80%) province names
-    against the province list in ai.xlsx from the same raw data folder.
+    against the province list in dim_province.xlsx from the Data Dimension folder.
     The 'province' column is dropped from the output.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the raw PDRB Excel file.
+    dimension_folder : str, optional
+        Path to the Data Dimension folder containing dim_province.xlsx.
+        If not provided, defaults to 'Data Dimension' relative to the project root.
 
     Output:
         Columns: id_province, pdrb
@@ -128,8 +119,11 @@ def clean(file_path):
     # =========================
     # MAP PROVINCE → id_province  (fuzzy, ≥80%)
     # =========================
-    raw_folder = os.path.dirname(os.path.abspath(file_path))
-    province_map = _build_province_map_from_ai(raw_folder)
+    if dimension_folder is None:
+        # Default: assume project root is two levels up from the file
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(file_path)))
+        dimension_folder = os.path.join(project_root, "Data Dimension")
+    province_map = _build_province_map(dimension_folder)
 
     df["id_province"] = df["province"].apply(
         lambda p: _fuzzy_id(p, province_map, threshold=0.8)
